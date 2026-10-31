@@ -49,7 +49,7 @@ export const SmartVideo: React.FC<SmartVideoProps> = ({
     const el = containerRef.current;
     if (!el) return;
 
-    // Observer 1: Lazy-load video source slightly before entering viewport
+    // Observer 1: Lazy-load video source just before entering viewport so initial load stays fast
     const loadObserver = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -58,7 +58,7 @@ export const SmartVideo: React.FC<SmartVideoProps> = ({
           }
         });
       },
-      { rootMargin: '320px 0px', threshold: 0.01 }
+      { rootMargin: '120px 0px', threshold: 0.01 }
     );
 
     // Observer 2: Play/pause strictly when in or out of viewport
@@ -68,7 +68,7 @@ export const SmartVideo: React.FC<SmartVideoProps> = ({
           setIsInViewport(entry.isIntersecting);
         });
       },
-      { rootMargin: '40px 0px', threshold: 0.1 }
+      { rootMargin: '20px 0px', threshold: 0.08 }
     );
 
     loadObserver.observe(el);
@@ -104,7 +104,6 @@ export const SmartVideo: React.FC<SmartVideoProps> = ({
             onStatusChange?.({ isPlaying: true, isLoaded });
           })
           .catch(() => {
-            // Autoplay fallback or interrupted load
             onStatusChange?.({ isPlaying: false, isLoaded });
           });
       }
@@ -125,19 +124,19 @@ export const SmartVideo: React.FC<SmartVideoProps> = ({
           ref={videoRef}
           src={shouldLoadSource ? src : undefined}
           poster={posterUri}
-          preload={isHero ? 'auto' : 'none'}
+          preload={isHero ? 'metadata' : 'none'}
           muted
           playsInline
           loop
           autoPlay={isHero && !prefersReducedMotion}
-          onLoadedData={() => {
+          onLoadedMetadata={() => {
             setIsLoaded(true);
             onStatusChange?.({ isPlaying: !videoRef.current?.paused, isLoaded: true });
           }}
           onError={() => setHasError(true)}
           style={filterStyle ? { filter: filterStyle } : undefined}
-          className={`h-full w-full object-cover transition-opacity duration-700 ${
-            isLoaded ? 'opacity-100' : 'opacity-85'
+          className={`h-full w-full object-cover transition-opacity duration-200 ${
+            isLoaded ? 'opacity-100' : 'opacity-90'
           }`}
         />
       )}

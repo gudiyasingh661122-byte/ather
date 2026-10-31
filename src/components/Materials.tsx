@@ -88,7 +88,7 @@ export const Materials: React.FC = () => {
                 <span className="text-[#F5F3EF]">{activeStudy.name}</span>
               </div>
               <span className="font-mono-tabular text-xs text-[#92908C]">
-                Interactive WebGL · Move pointer to orbit
+                30 FPS · Interactive WebGL · Move pointer to orbit
               </span>
             </div>
 

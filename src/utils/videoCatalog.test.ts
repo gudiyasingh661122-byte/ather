@@ -7,6 +7,8 @@ import {
   getVideoById,
   shouldVideoPlay,
   createLuxuryPosterDataUri,
+  TARGET_FPS,
+  shouldRenderFrameAtFps,
 } from './videoCatalog';
 
 test('all 6 uploaded video files are registered with local /assets/aistudio/ paths', () => {
@@ -66,4 +68,10 @@ test('getVideoById returns matching video and falls back safely', () => {
 test('createLuxuryPosterDataUri produces valid SVG data URI', () => {
   const uri = createLuxuryPosterDataUri('#C6A56B');
   assert.ok(uri.startsWith('data:image/svg+xml;utf8,'));
+});
+
+test('shouldRenderFrameAtFps enforces 30 FPS (~33.33ms) frame interval', () => {
+  assert.equal(TARGET_FPS, 30);
+  assert.equal(shouldRenderFrameAtFps(0, 16.6, 30), false);
+  assert.equal(shouldRenderFrameAtFps(0, 33.4, 30), true);
 });

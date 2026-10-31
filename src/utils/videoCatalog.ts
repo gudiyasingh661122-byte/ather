@@ -372,6 +372,19 @@ export function getVideoById(id: string): VideoAssetAnalysis {
   return found ?? UPLOADED_VIDEO_CATALOG[0];
 }
 
+export const TARGET_FPS = 30;
+export const FRAME_INTERVAL_MS = 1000 / TARGET_FPS;
+
+export function shouldRenderFrameAtFps(
+  lastRenderTimeMs: number,
+  currentTimeMs: number,
+  targetFps: number = TARGET_FPS
+): boolean {
+  if (targetFps <= 0) return false;
+  const interval = 1000 / targetFps;
+  return currentTimeMs - lastRenderTimeMs >= interval - 0.5;
+}
+
 export function shouldVideoPlay(params: {
   isInViewport: boolean;
   prefersReducedMotion: boolean;

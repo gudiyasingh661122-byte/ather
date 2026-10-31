@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
-import { MaterialStudy } from '../utils/videoCatalog';
+import { MaterialStudy, shouldRenderFrameAtFps, TARGET_FPS } from '../utils/videoCatalog';
 
 interface AetherSculptureCanvasProps {
   activeStudy: MaterialStudy;
@@ -79,7 +79,7 @@ export const AetherSculptureCanvas: React.FC<AetherSculptureCanvasProps> = ({
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.15;
-    renderer.setPixelRatio(isSoftwareGl ? 1 : Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(isSoftwareGl ? 1 : Math.min(window.devicePixelRatio, 1.5));
     renderer.setSize(width, height);
     renderer.shadowMap.enabled = !isSoftwareGl;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -101,7 +101,7 @@ export const AetherSculptureCanvas: React.FC<AetherSculptureCanvasProps> = ({
     keyLight.position.set(4, 6, 4);
     if (!isSoftwareGl) {
       keyLight.castShadow = true;
-      keyLight.shadow.mapSize.set(1024, 1024);
+      keyLight.shadow.mapSize.set(512, 512);
       keyLight.shadow.camera.near = 0.5;
       keyLight.shadow.camera.far = 18;
       const d = 3.5;
@@ -126,21 +126,21 @@ export const AetherSculptureCanvas: React.FC<AetherSculptureCanvasProps> = ({
       scene.add(softbox);
     }
 
-    // 4. Procedural Brushed Anisotropy Bump Texture (CanvasTexture)
+    // 4. Lightweight Procedural Brushed Anisotropy Bump Texture (CanvasTexture)
     const bumpCanvas = document.createElement('canvas');
-    bumpCanvas.width = 256;
-    bumpCanvas.height = 256;
+    bumpCanvas.width = 128;
+    bumpCanvas.height = 128;
     const ctx = bumpCanvas.getContext('2d');
     if (ctx) {
       ctx.fillStyle = '#808080';
-      ctx.fillRect(0, 0, 256, 256);
-      for (let i = 0; i < 400; i++) {
-        const y = Math.random() * 256;
-        const shade = Math.floor(110 + Math.random() * 35);
+      ctx.fillRect(0, 0, 128, 128);
+      for (let i = 0; i < 120; i++) {
+        const y = (i * 1.06) % 128;
+        const shade = 115 + ((i * 17) % 30);
         ctx.strokeStyle = `rgb(${shade},${shade},${shade})`;
         ctx.beginPath();
         ctx.moveTo(0, y);
-        ctx.lineTo(256, y);
+        ctx.lineTo(128, y);
         ctx.stroke();
       }
     }
@@ -228,26 +228,26 @@ export const AetherSculptureCanvas: React.FC<AetherSculptureCanvasProps> = ({
     rootGroup.add(glassShellMesh);
 
     // Part 4: Primary Equatorial Gimbal Ring (Champagne Gold)
-    const outerRingGeo = new THREE.TorusGeometry(1.78, 0.042, 24, 96);
+    const outerRingGeo = new THREE.TorusGeometry(1.78, 0.042, 16, 72);
     const outerRingMesh = new THREE.Mesh(outerRingGeo, goldRingMaterial);
     outerRingMesh.rotation.x = Math.PI * 0.38;
     rootGroup.add(outerRingMesh);
 
     // Part 5: Secondary Meridian Gimbal Ring (Obsidian Alloy)
-    const midRingGeo = new THREE.TorusGeometry(1.52, 0.055, 20, 84);
+    const midRingGeo = new THREE.TorusGeometry(1.52, 0.055, 16, 64);
     const midRingMesh = new THREE.Mesh(midRingGeo, obsidianAlloyMaterial);
     midRingMesh.rotation.y = Math.PI * 0.28;
     midRingMesh.rotation.x = -Math.PI * 0.18;
     rootGroup.add(midRingMesh);
 
     // Part 6: Tertiary Precision Chronograph Ring (Core Material)
-    const innerRingGeo = new THREE.TorusGeometry(1.34, 0.025, 16, 72);
+    const innerRingGeo = new THREE.TorusGeometry(1.34, 0.025, 12, 56);
     const innerRingMesh = new THREE.Mesh(innerRingGeo, coreMaterial);
     innerRingMesh.rotation.z = Math.PI * 0.22;
     rootGroup.add(innerRingMesh);
 
     // Part 7: Axial Gimbal Spindles (4 precision pins)
-    const spindleGeo = new THREE.CylinderGeometry(0.018, 0.018, 0.42, 12);
+    const spindleGeo = new THREE.CylinderGeometry(0.018, 0.018, 0.42, 10);
     const spindleGroup = new THREE.Group();
     for (let i = 0; i < 4; i++) {
       const angle = (i * Math.PI) / 2;
@@ -261,7 +261,7 @@ export const AetherSculptureCanvas: React.FC<AetherSculptureCanvasProps> = ({
 
     // Part 8: Orbital Harmonic Nodes (InstancedMesh of 24 micro-satellites)
     const nodeCount = 24;
-    const nodeGeo = new THREE.SphereGeometry(0.032, 12, 12);
+    const nodeGeo = new THREE.SphereGeometry(0.032, 10, 10);
     const nodesInstanced = new THREE.InstancedMesh(nodeGeo, goldRingMaterial, nodeCount);
     for (let i = 0; i < nodeCount; i++) {
       const theta = (i / nodeCount) * Math.PI * 2;
@@ -319,15 +319,27 @@ export const AetherSculptureCanvas: React.FC<AetherSculptureCanvasProps> = ({
       })
     );
     floorRing.rotation.x = -Math.PI / 2;
-    floorRing.position.y = -2.23; // Offset >= 0.02 on Y to prevent coplanar Z-fighting
+    floorRing.position.y = -2.23;
     scene.add(floorRing);
 
-    if (!isSoftwareGl) {
-      renderer.compile(scene, camera);
-    }
+    // Render one immediate initial frame so canvas is ready right away
+    renderer.render(scene, camera);
+
+    // Track whether the 3D canvas is inside or near the viewport
+    let isCanvasInView = true;
+    const visibilityObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          isCanvasInView = entry.isIntersecting;
+        });
+      },
+      { rootMargin: '150px 0px', threshold: 0.01 }
+    );
+    visibilityObserver.observe(mount);
 
     // Pointer move handler for smooth parallax
     const onPointerMove = (e: PointerEvent) => {
+      if (!isCanvasInView) return;
       const rect = mount.getBoundingClientRect();
       if (rect.width === 0 || rect.height === 0) return;
       const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
@@ -348,11 +360,12 @@ export const AetherSculptureCanvas: React.FC<AetherSculptureCanvasProps> = ({
     };
     window.addEventListener('resize', onResize);
 
-    // 6. Paced Animation Loop (afterDraw for software WebGL, rAF for GPU)
+    // 6. 30 FPS Paced Animation Loop (afterDraw for software WebGL, 30 FPS cap for GPU)
     const clock = new THREE.Clock();
     let frameId = 0;
     let isDisposed = false;
     let currentExploded = explodedRef.current;
+    let lastRenderTimeMs = 0;
 
     function afterDraw(cb: () => void) {
       const gl = renderer.getContext() as WebGL2RenderingContext;
@@ -375,13 +388,11 @@ export const AetherSculptureCanvas: React.FC<AetherSculptureCanvasProps> = ({
       frameId = window.setTimeout(poll, 5);
     }
 
-    function tick() {
-      if (isDisposed) return;
+    function stepAndRender() {
       const dt = Math.min(clock.getDelta(), 0.1);
       const elapsed = clock.getElapsedTime();
       const speed = speedRef.current;
 
-      // Smoothly interpolate PBR material toward activeStudy
       const targetPbr = activeStudyRef.current.pbrConfig;
       _targetColor.set(targetPbr.color);
       _emissiveColor.set(targetPbr.emissive);
@@ -392,7 +403,6 @@ export const AetherSculptureCanvas: React.FC<AetherSculptureCanvasProps> = ({
       coreMaterial.clearcoat = THREE.MathUtils.damp(coreMaterial.clearcoat, targetPbr.clearcoat, 6, dt);
       coreMaterial.anisotropy = THREE.MathUtils.damp(coreMaterial.anisotropy, targetPbr.anisotropy, 6, dt);
 
-      // Smoothly damp exploded view separation
       currentExploded = THREE.MathUtils.damp(currentExploded, explodedRef.current, 5, dt);
 
       const outerScale = 1 + currentExploded * 0.28;
@@ -403,7 +413,6 @@ export const AetherSculptureCanvas: React.FC<AetherSculptureCanvasProps> = ({
       glassShellMesh.scale.setScalar(glassScale);
       nodesInstanced.scale.setScalar(1 + currentExploded * 0.34);
 
-      // Orbital kinematics
       coreMesh.rotation.y += dt * 0.32 * speed;
       coreMesh.rotation.x += dt * 0.18 * speed;
       innerCageMesh.rotation.y -= dt * 0.24 * speed;
@@ -415,7 +424,6 @@ export const AetherSculptureCanvas: React.FC<AetherSculptureCanvasProps> = ({
       spindleGroup.rotation.y += dt * 0.22 * speed;
       nodesInstanced.rotation.y = elapsed * 0.15 * speed;
 
-      // Smooth mouse-responsive parallax on rootGroup
       const targetRotY = pointerRef.current.x * 0.42;
       const targetRotX = -pointerRef.current.y * 0.28;
       rootGroup.rotation.y = THREE.MathUtils.damp(rootGroup.rotation.y, targetRotY, 4, dt);
@@ -423,10 +431,27 @@ export const AetherSculptureCanvas: React.FC<AetherSculptureCanvasProps> = ({
       rootGroup.position.y = Math.sin(elapsed * 1.1) * 0.06;
 
       renderer.render(scene, camera);
+    }
+
+    function tick(nowMs = performance.now()) {
+      if (isDisposed) return;
+
+      if (!isCanvasInView) {
+        clock.getDelta(); // prevent large dt jump when re-entering view
+        frameId = window.setTimeout(() => {
+          if (!isDisposed) frameId = requestAnimationFrame(tick);
+        }, 120);
+        return;
+      }
 
       if (isSoftwareGl) {
-        afterDraw(tick);
+        stepAndRender();
+        afterDraw(() => tick(performance.now()));
       } else {
+        if (shouldRenderFrameAtFps(lastRenderTimeMs, nowMs, TARGET_FPS)) {
+          lastRenderTimeMs = nowMs;
+          stepAndRender();
+        }
         frameId = requestAnimationFrame(tick);
       }
     }
@@ -435,6 +460,7 @@ export const AetherSculptureCanvas: React.FC<AetherSculptureCanvasProps> = ({
 
     return () => {
       isDisposed = true;
+      visibilityObserver.disconnect();
       cancelAnimationFrame(frameId);
       clearTimeout(frameId);
       window.removeEventListener('pointermove', onPointerMove);

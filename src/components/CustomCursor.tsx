@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { shouldRenderFrameAtFps, TARGET_FPS } from '../utils/videoCatalog';
 
 export const CustomCursor: React.FC = () => {
   const dotRef = useRef<HTMLDivElement>(null);
@@ -23,6 +24,7 @@ export const CustomCursor: React.FC = () => {
     let ringY = -100;
     let initialized = false;
     let rafId = 0;
+    let lastFrameMs = 0;
 
     const handleMouseMove = (e: MouseEvent) => {
       mouseX = e.clientX;
@@ -50,10 +52,11 @@ export const CustomCursor: React.FC = () => {
       }
     };
 
-    const animateRing = () => {
-      if (initialized) {
-        ringX += (mouseX - ringX) * 0.18;
-        ringY += (mouseY - ringY) * 0.18;
+    const animateRing = (nowMs: number) => {
+      if (initialized && shouldRenderFrameAtFps(lastFrameMs, nowMs, TARGET_FPS)) {
+        lastFrameMs = nowMs;
+        ringX += (mouseX - ringX) * 0.28;
+        ringY += (mouseY - ringY) * 0.28;
         if (ringRef.current) {
           ringRef.current.style.transform = `translate3d(${ringX}px, ${ringY}px, 0) translate(-50%, -50%)`;
         }

@@ -122,7 +122,7 @@ export const Introduction: React.FC<IntroductionProps> = ({ onNavigate }) => {
 
             <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-4 text-xs text-[#92908C]">
               <span>Chiaroscuro Top-Left Rim Lighting</span>
-              <span className="font-mono-tabular text-[#F5F3EF]">2160p · 60fps</span>
+              <span className="font-mono-tabular text-[#F5F3EF]">2160p · 30fps</span>
             </div>
           </div>
         </div>
