@@ -1,0 +1,6 @@
+{
+  "name": "AETHER — Beyond Reality",
+  "description": "An experimental luxury 3D digital art installation and cinematic web experience exploring digital dimensions, reflective materials, and spatial motion.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
